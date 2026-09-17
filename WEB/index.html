@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="es" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Revenue Management Dashboard</title>
+  
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: { sans: ['Outfit', 'sans-serif'] },
+        }
+      }
+    }
+  </script>
+  <style>
+    .fade-in { animation: fadeIn 0.3s ease-out; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    
+    input[type=range] { -webkit-appearance: none; background: transparent; width: 100%; }
+    input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; height: 18px; width: 18px; border-radius: 50%; background: #0f172a; cursor: pointer; margin-top: -7px; border: 2px solid #fff; box-shadow: 0 2px 8px rgba(0,0,0,0.15);}
+    input[type=range]::-webkit-slider-runnable-track { width: 100%; height: 4px; cursor: pointer; background: #e2e8f0; border-radius: 99px; }
+  </style>
+</head>
+<body class="bg-[#f4f5f8] text-slate-800 font-sans h-[100dvh] w-screen overflow-hidden flex items-center justify-center p-0 lg:p-6 selection:bg-rose-500 selection:text-white">
+
+  <!-- ================= PORTADA ================= -->
+  <div id="vista_portada" class="fixed inset-0 z-50 flex flex-col items-center justify-center bg-[#f4f5f8] transition-opacity duration-700 px-4 sm:px-6">
+    <div class="w-full max-w-4xl text-center bg-white p-8 sm:p-14 lg:p-16 rounded-[2rem] sm:rounded-[3rem] shadow-sm border border-slate-200/50 relative overflow-hidden">
+      
+      <div class="absolute top-[-20%] right-[-10%] w-40 sm:w-64 h-40 sm:h-64 bg-rose-500 rounded-full opacity-10 blur-[60px]"></div>
+      <div class="absolute bottom-[-20%] left-[-10%] w-40 sm:w-64 h-40 sm:h-64 bg-orange-500 rounded-full opacity-10 blur-[60px]"></div>
+
+      <div class="flex flex-wrap justify-center gap-3 sm:gap-4 mb-6 sm:mb-8 relative z-10">
+        <span id="hero_tag1" class="px-4 py-1.5 sm:px-5 sm:py-2 bg-rose-50 text-rose-600 text-[10px] sm:text-xs font-bold uppercase tracking-widest rounded-full">Reinforcement Learning</span>
+        <span id="hero_tag2" class="px-4 py-1.5 sm:px-5 sm:py-2 bg-orange-50 text-orange-600 text-[10px] sm:text-xs font-bold uppercase tracking-widest rounded-full">Big Data</span>
+      </div>
+      <h1 id="hero_title" class="text-4xl sm:text-6xl lg:text-7xl font-extrabold text-slate-900 tracking-tight mb-4 sm:mb-6 relative z-10 leading-tight">
+        Motor de Precios <span class="text-transparent bg-clip-text bg-gradient-to-r from-[#f43f5e] to-[#fb923c]">Autónomo</span>
+      </h1>
+      <p id="hero_desc" class="text-base sm:text-xl text-slate-500 mb-8 sm:mb-12 font-light max-w-2xl mx-auto relative z-10 px-4">
+        Optimización dinámica para alta velocidad. Desplegado con PPO.
+      </p>
+      <button id="btn_entrar" class="relative z-10 px-8 sm:px-10 py-3.5 sm:py-4 text-sm sm:text-base font-bold text-white bg-slate-900 rounded-full transition-all hover:scale-105 hover:shadow-xl hover:shadow-slate-900/20 w-full sm:w-auto">
+        Acceder al Dashboard
+      </button>
+    </div>
+  </div>
+
+  <!-- ================= APP CONTAINER ================= -->
+  <div id="app_container" class="hidden opacity-0 transition-opacity duration-700 w-full h-full max-w-[1600px] lg:h-[96vh] lg:max-h-[950px] flex flex-col lg:flex-row bg-white rounded-none lg:rounded-[2.5rem] lg:shadow-[0_10px_40px_rgba(0,0,0,0.03)] border-none lg:border border-slate-200/80 overflow-hidden relative">
+    
+    <!-- SIDEBAR -->
+    <aside class="order-last lg:order-first w-full lg:w-[90px] h-auto py-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] lg:py-8 lg:h-full bg-[#f8f9fc] border-t lg:border-t-0 lg:border-r border-slate-200 flex flex-row lg:flex-col items-center justify-center lg:justify-start shrink-0 z-50">
+      
+      <div class="hidden lg:flex w-12 h-12 bg-white rounded-2xl items-center justify-center mb-8 shadow-sm border border-slate-100">
+        <svg class="w-6 h-6" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+          <path d="M3 19L9 11L13 15L21 5" stroke="#f43f5e" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+          <circle cx="3" cy="19" r="2.5" fill="#f43f5e"/>
+          <circle cx="9" cy="11" r="2.5" fill="#f43f5e"/>
+          <circle cx="13" cy="15" r="2.5" fill="#fb923c"/>
+          <circle cx="21" cy="5" r="2.5" fill="#fb923c"/>
+        </svg>
+      </div>
+
+      <nav class="flex flex-row lg:flex-col gap-4 sm:gap-6 w-full px-4 lg:px-4 h-auto items-center justify-center lg:justify-start">
+        <button id="btn_tab_dashboard" class="w-12 h-12 lg:w-full lg:h-auto lg:aspect-square rounded-[1rem] lg:rounded-2xl bg-slate-900 text-white flex justify-center items-center shadow-md transition-all group">
+          <svg class="w-5 h-5 lg:w-6 lg:h-6 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v12a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 10a2 2 0 012-2h2a2 2 0 012 2v8a2 2 0 01-2 2h-2a2 2 0 01-2-2v-8z"/></svg>
+        </button>
+        <button id="btn_tab_metrix" class="w-12 h-12 lg:w-full lg:h-auto lg:aspect-square rounded-[1rem] lg:rounded-2xl bg-white text-slate-400 hover:bg-slate-50 hover:text-slate-900 flex justify-center items-center shadow-sm border border-slate-100 transition-all group">
+          <svg class="w-5 h-5 lg:w-6 lg:h-6 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/></svg>
+        </button>
+        <button id="btn_tab_datos" class="w-12 h-12 lg:w-full lg:h-auto lg:aspect-square rounded-[1rem] lg:rounded-2xl bg-white text-slate-400 hover:bg-slate-50 hover:text-slate-900 flex justify-center items-center shadow-sm border border-slate-100 transition-all group">
+          <svg class="w-5 h-5 lg:w-6 lg:h-6 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+        </button>
+        <button id="btn_tab_docs" class="w-12 h-12 lg:w-full lg:h-auto lg:aspect-square rounded-[1rem] lg:rounded-2xl bg-white text-slate-400 hover:bg-slate-50 hover:text-slate-900 flex justify-center items-center shadow-sm border border-slate-100 transition-all group">
+          <svg class="w-5 h-5 lg:w-6 lg:h-6 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        </button>
+      </nav>
+    </aside>
+
+    <!-- ÁREA CENTRAL -->
+    <div class="flex-1 flex flex-col h-full overflow-hidden bg-white relative min-w-0">
+      
+      <!-- HEADER INTERNO -->
+      <header class="flex flex-col sm:flex-row justify-between items-start sm:items-end px-4 sm:px-8 lg:px-10 pt-6 sm:pt-8 pb-4 shrink-0 border-b border-slate-50 gap-4">
+        <div class="min-w-0">
+          <span id="breadcrumb" class="text-[10px] sm:text-[11px] font-bold text-slate-400 uppercase tracking-widest block truncate">Inicio → Dashboard</span>
+          <h1 id="page_title" class="text-2xl sm:text-3xl font-extrabold text-slate-900 mt-1 tracking-tight truncate">Panel Principal</h1>
+        </div>
+        <div class="flex gap-3 items-center w-full sm:w-auto shrink-0">
+          <div class="flex bg-slate-50 rounded-full p-1 border border-slate-100 text-xs font-bold shrink-0">
+            <button id="btn_lang_es" class="px-4 py-1.5 rounded-full bg-slate-900 text-white transition-all shadow-sm">ES</button>
+            <button id="btn_lang_en" class="px-4 py-1.5 rounded-full text-slate-500 hover:text-slate-900 transition-all">EN</button>
+          </div>
+          <button id="btn_exportar" class="px-4 py-1.5 sm:px-5 sm:py-2 rounded-full text-xs font-bold bg-white border border-slate-200 shadow-sm hover:shadow text-slate-700 transition-all ml-auto sm:ml-0 shrink-0">
+            Exportar CSV
+          </button>
+        </div>
+      </header>
+
+      <!-- MAIN CONTAINER -->
+      <main class="flex-1 flex flex-col overflow-y-auto overflow-x-hidden px-4 sm:px-8 lg:px-10 pb-6 pt-4 min-w-0">
+
+        <!-- ================= VISTA 1: DASHBOARD ================= -->
+        <div id="vista_dashboard" class="fade-in w-full flex flex-col xl:flex-row gap-5 shrink-0 xl:shrink h-auto xl:h-full">
+          
+          <!-- COLUMNA IZQUIERDA -->
+          <div class="w-full xl:w-[320px] flex flex-col shrink-0 gap-5 h-auto xl:h-full">
+            <div class="bg-white rounded-[2rem] shadow-sm border border-slate-100 flex flex-col overflow-hidden min-w-0 h-auto xl:h-full xl:flex-1">
+              
+              <!-- Zona IA -->
+              <div class="p-6 relative overflow-hidden flex flex-col items-center text-center bg-slate-900 shrink-0">
+                <div class="absolute top-0 right-0 w-32 h-32 bg-[#f43f5e] rounded-full opacity-[0.2] blur-[40px]"></div>
+                <div class="absolute bottom-0 left-0 w-32 h-32 bg-[#fb923c] rounded-full opacity-[0.2] blur-[40px]"></div>
+                
+                <h3 id="tit_recom" class="text-[10px] font-bold text-slate-400 uppercase tracking-widest relative z-10 mb-3">Recomendación IA</h3>
+                
+                <div class="relative z-10 bg-white/10 backdrop-blur-md px-6 py-4 rounded-3xl border border-white/5 w-full">
+                  <div class="text-4xl font-black text-white mb-2"><span id="sb_multiplicador">0.9</span>x</div>
+                  <div class="flex justify-center items-center gap-2 mt-1">
+                    <span id="sb_pct" class="text-[10px] font-bold text-slate-900 bg-white px-3 py-1 rounded-full">-10%</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Zona Controles -->
+              <div class="p-6 flex flex-col gap-5 bg-white flex-none xl:flex-1 overflow-visible xl:overflow-y-auto">
+                <div class="flex items-center justify-between mb-1">
+                  <h3 id="tit_params" class="text-sm font-bold text-slate-900">Configuración</h3>
+                  <span id="sb_accion" class="bg-rose-50 text-rose-600 text-xs font-bold w-6 h-6 flex items-center justify-center rounded-full">3</span>
+                </div>
+                
+                <div>
+                  <label id="lbl_ruta" class="block text-[10px] font-bold text-slate-400 uppercase mb-2">Corredor</label>
+                  <select id="selector_ruta" class="w-full bg-[#f4f5f8] border-none text-slate-800 text-sm font-semibold rounded-2xl p-3 outline-none cursor-pointer"></select>
+                </div>
+                <div>
+                  <div class="flex justify-between items-center mb-2">
+                    <label id="lbl_dias" class="text-[10px] font-bold text-slate-400 uppercase">Días Salida</label>
+                    <span class="text-xs font-bold text-slate-700 bg-slate-50 px-2 py-0.5 rounded-md border border-slate-100"><span id="txt_dias">15</span> d</span>
+                  </div>
+                  <input type="range" id="slider_dias" min="0" max="30" value="15">
+                </div>
+                <div>
+                  <div class="flex justify-between items-center mb-2">
+                    <label id="lbl_plazas" class="text-[10px] font-bold text-slate-400 uppercase">Inventario</label>
+                    <span class="text-xs font-bold text-slate-700 bg-slate-50 px-2 py-0.5 rounded-md border border-slate-100"><span id="txt_asientos">50</span> pl</span>
+                  </div>
+                  <input type="range" id="slider_asientos" min="0" max="100" value="50">
+                </div>
+              </div>
+
+            </div>
+          </div>
+
+          <!-- COLUMNA DERECHA -->
+          <div class="flex-1 flex flex-col gap-5 min-w-0 h-auto xl:h-full pb-6 xl:pb-0">
+            
+            <div id="banner_gobernanza" class="hidden rounded-2xl bg-rose-50 p-3 border border-rose-100 shrink-0">
+              <div class="flex items-center gap-3">
+                <span class="text-xl">⚠️</span>
+                <div class="min-w-0">
+                  <h3 id="tit_gob" class="text-[11px] font-bold text-rose-800 uppercase truncate">Límite Aplicado</h3>
+                  <p id="desc_gobernanza" class="text-[11px] text-rose-600 mt-0.5 truncate"></p>
+                </div>
+              </div>
+            </div>
+
+            <!-- KPIs -->
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 shrink-0 min-w-0">
+              <div class="bg-white p-4 rounded-[1.5rem] shadow-sm border border-slate-100 flex flex-col justify-center min-w-0">
+                <p id="kpi_tit_base" class="text-[9px] font-bold text-slate-400 uppercase tracking-widest truncate">Tarifa Base</p>
+                <p class="text-xl sm:text-2xl font-black text-slate-800 mt-1 truncate"><span id="kpi_base">--</span>€</p>
+              </div>
+              
+              <div class="bg-white p-4 rounded-[1.5rem] shadow-sm border border-slate-100 flex flex-col justify-center min-w-0">
+                <p id="kpi_tit_techo" class="text-[9px] font-bold text-slate-400 uppercase tracking-widest truncate">Techo Hist.</p>
+                <p class="text-xl sm:text-2xl font-black text-slate-800 mt-1 truncate"><span id="kpi_techo">--</span>€</p>
+              </div>
+              
+              <div class="bg-white p-4 rounded-[1.5rem] shadow-sm border border-slate-100 flex flex-col justify-center min-w-0">
+                <p id="kpi_tit_var" class="text-[9px] font-bold text-slate-400 uppercase tracking-widest truncate">Variación</p>
+                <p class="text-lg sm:text-xl font-bold mt-1 truncate text-slate-800" id="kpi_var_texto">--</p>
+              </div>
+
+              <!-- Tarjeta Final Premium -->
+              <div class="bg-gradient-to-br from-[#f43f5e] to-[#fb923c] p-4 rounded-[1.5rem] shadow-sm flex flex-col justify-center relative overflow-hidden min-w-0">
+                <div class="absolute -bottom-4 -right-4 w-20 h-20 bg-white opacity-20 rounded-full blur-[15px]"></div>
+                <p id="kpi_tit_final" class="text-[9px] font-bold text-white/90 uppercase tracking-widest relative z-10 truncate">Precio Final</p>
+                <div class="mt-1 relative z-10 min-w-0">
+                  <p class="text-2xl sm:text-3xl font-black text-white truncate drop-shadow-sm"><span id="kpi_final">--</span>€</p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Gráficos -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 flex-none xl:flex-1 min-w-0 min-h-0">
+              
+              <div class="bg-white rounded-[1.5rem] p-4 shadow-sm border border-slate-100 flex flex-col relative overflow-hidden min-w-0 min-h-[400px] xl:min-h-0 xl:h-full">
+                <div class="flex justify-between items-center mb-1 shrink-0">
+                  <h3 id="tit_heatmap" class="text-xs font-bold text-slate-900 truncate">Mapa Política</h3>
+                  <span class="text-[8px] font-bold text-rose-500 bg-rose-50 px-2 py-0.5 rounded-full uppercase shrink-0">PPO Agent</span>
+                </div>
+                <div id="grafico_heatmap" class="w-full flex-1 min-h-0 relative z-10"></div>
+              </div>
+
+              <div class="bg-white rounded-[1.5rem] p-4 shadow-sm border border-slate-100 flex flex-col relative overflow-hidden min-w-0 min-h-[400px] xl:min-h-0 xl:h-full">
+                <div class="flex justify-between items-center mb-1 shrink-0">
+                  <h3 id="tit_curva" class="text-xs font-bold text-slate-900 truncate">Proyección Curva</h3>
+                  <span class="text-[8px] font-bold text-orange-500 bg-orange-50 px-2 py-0.5 rounded-full uppercase shrink-0">Base Fare</span>
+                </div>
+                <div id="grafico_curva" class="w-full flex-1 min-h-0 relative z-10"></div>
+              </div>
+
+            </div>
+
+          </div>
+        </div>
+
+        <!-- ================= VISTA 2: METRICAS ================= -->
+        <div id="vista_metrix" class="hidden fade-in w-full flex flex-col justify-center gap-5 max-w-5xl mx-auto shrink-0 xl:shrink h-auto xl:h-full py-8 xl:py-0">
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-5 shrink-0">
+            <div class="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm relative overflow-hidden text-center sm:text-left">
+              <p id="met_t1" class="text-[10px] font-bold uppercase tracking-widest text-slate-400">Mejora vs Base</p>
+              <p class="text-3xl sm:text-4xl font-black text-slate-900 mt-2">+6.4%</p>
+              <p id="met_d1" class="text-xs text-slate-500 mt-2">Incremento de ingresos.</p>
+            </div>
+            <div class="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm relative overflow-hidden text-center sm:text-left">
+              <p id="met_t2" class="text-[10px] font-bold uppercase tracking-widest text-slate-400">Ocupación Óptima</p>
+              <p class="text-3xl sm:text-4xl font-black text-slate-900 mt-2">83.5%</p>
+              <p id="met_d2" class="text-xs text-slate-500 mt-2">Plazas bajo PPO.</p>
+            </div>
+            <div class="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm relative overflow-hidden text-center sm:text-left">
+              <p id="met_t3" class="text-[10px] font-bold uppercase tracking-widest text-slate-400">Significancia</p>
+              <p class="text-3xl sm:text-4xl font-black text-rose-500 mt-2">p &lt; 0.01</p>
+              <p id="met_d3" class="text-xs text-slate-500 mt-2">Validado vía Bootstrap.</p>
+            </div>
+          </div>
+
+          <div class="bg-white rounded-[2rem] border border-slate-100 p-6 sm:p-8 shadow-sm flex flex-col justify-center min-h-0">
+            <h3 id="met_subt" class="text-lg sm:text-xl font-bold text-slate-900 mb-1">Simulación Monte Carlo</h3>
+            <p id="met_subd" class="text-xs text-slate-500 mb-5">Agregado de 36 rutas fuera de muestra.</p>
+            <div class="space-y-3 shrink-0">
+              <div class="flex flex-row justify-between items-center p-4 bg-gradient-to-r from-rose-50 to-orange-50 rounded-2xl border border-rose-100">
+                <span id="met_l1" class="font-bold text-slate-900 text-sm">Agente PPO</span>
+                <span class="font-black text-rose-600 text-lg">5,310.35 €</span>
+              </div>
+              <div class="flex flex-row justify-between items-center p-4 bg-[#f4f5f8] rounded-2xl border border-slate-100">
+                <span id="met_l2" class="font-bold text-slate-600 text-sm">Heurística Comercial</span>
+                <span class="font-bold text-slate-700 text-base">5,271.01 €</span>
+              </div>
+              <div class="flex flex-row justify-between items-center p-4 bg-[#f4f5f8] rounded-2xl border border-slate-100">
+                <span id="met_l3" class="font-bold text-slate-600 text-sm">Política Fija</span>
+                <span class="font-bold text-slate-700 text-base">5,264.47 €</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ================= VISTA 3: DATOS ================= -->
+        <div id="vista_datos" class="hidden fade-in w-full flex flex-col max-w-5xl mx-auto shrink-0 xl:shrink h-auto xl:h-full">
+          <div class="flex flex-wrap items-center gap-3 mb-4 shrink-0">
+            <div class="flex items-center gap-2 bg-white px-4 py-2 rounded-2xl border border-slate-100 shadow-sm flex-1 sm:flex-none">
+              <span id="dat_ruta" class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Ruta:</span>
+              <select id="selector_ruta_datos" class="bg-transparent text-slate-800 text-xs sm:text-sm font-bold outline-none cursor-pointer w-full"></select>
+            </div>
+            <div class="flex items-center gap-2 bg-white px-4 py-2 rounded-2xl border border-slate-100 shadow-sm flex-1 sm:flex-none">
+              <span id="dat_filtro" class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Filtro:</span>
+              <select id="filtro_rango_dias" class="bg-transparent text-slate-800 text-xs sm:text-sm font-bold outline-none cursor-pointer w-full">
+                <option value="todos" id="dat_o1">Todo (0-30d)</option>
+                <option value="cercanos" id="dat_o2">Cercano (0-7d)</option>
+                <option value="medios" id="dat_o3">Medio (8-15d)</option>
+                <option value="lejanos" id="dat_o4">Lejano (16-30d)</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="bg-white rounded-[2rem] shadow-sm border border-slate-100 overflow-hidden flex flex-col h-[500px] xl:h-auto xl:flex-1 min-h-0">
+            <div class="p-4 sm:p-5 bg-white border-b border-slate-100 flex justify-between items-center shrink-0">
+              <span id="info_ruta_activa" class="font-bold text-slate-900 text-sm sm:text-base truncate">--</span>
+              <span id="contador_registros" class="text-slate-500 text-xs font-bold bg-slate-50 px-3 py-1 rounded-full border border-slate-100 shrink-0">--</span>
+            </div>
+            
+            <div class="overflow-y-auto flex-1 px-4 sm:px-6">
+              <table id="tabla_datos_ruta" class="w-full text-left border-collapse mt-2">
+                <thead class="sticky top-0 bg-white z-10">
+                  <tr class="text-slate-400 border-b border-slate-100">
+                    <th id="dat_th1" class="py-3 px-2 font-bold uppercase text-[10px] tracking-widest">Días Salida</th>
+                    <th id="dat_th2" class="py-3 px-2 font-bold uppercase text-[10px] tracking-widest">Precio Base</th>
+                    <th id="dat_th3" class="py-3 px-2 font-bold uppercase text-[10px] tracking-widest">Estado</th>
+                  </tr>
+                </thead>
+                <tbody id="cuerpo_tabla_datos" class="divide-y divide-slate-50 text-slate-800 font-medium text-xs sm:text-sm"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- ================= VISTA 4: DOCS ================= -->
+        <div id="vista_docs" class="hidden fade-in w-full flex flex-col justify-center max-w-5xl mx-auto shrink-0 xl:shrink h-auto xl:h-full py-8 xl:py-0">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 shrink-0">
+            
+            <div class="bg-white rounded-[2rem] p-6 shadow-sm border border-slate-100">
+              <h2 class="text-3xl font-extrabold text-slate-100 mb-1 opacity-70">01</h2>
+              <h3 id="doc_t1" class="font-bold text-slate-900 text-lg mb-1 truncate">Pipeline ETL (PySpark)</h3>
+              <p id="doc_d1" class="text-xs text-slate-500 leading-relaxed">Procesamiento distribuido con particionamiento temporal para aislar sets de validación. Limpieza de datos atípicos.</p>
+            </div>
+
+            <div class="bg-white rounded-[2rem] p-6 shadow-sm border border-slate-100">
+              <h2 class="text-3xl font-extrabold text-slate-100 mb-1 opacity-70">02</h2>
+              <h3 id="doc_t2" class="font-bold text-slate-900 text-lg mb-1 truncate">Entorno (Gymnasium)</h3>
+              <p id="doc_d2" class="text-xs text-slate-500 leading-relaxed">Simulación estocástica de Poisson integrada con curvas de elasticidad precio. Penalizaciones por inventario.</p>
+            </div>
+
+            <div class="bg-white rounded-[2rem] p-6 shadow-sm border border-slate-100">
+              <h2 class="text-3xl font-extrabold text-rose-50 mb-1">03</h2>
+              <h3 id="doc_t3" class="font-bold text-slate-900 text-lg mb-1 truncate">Optimización (PPO)</h3>
+              <p id="doc_d3" class="text-xs text-slate-500 leading-relaxed">Reward shaping guiado por programación dinámica para maximizar ingreso esperado y evitar el colapso de política.</p>
+            </div>
+
+            <div class="bg-white rounded-[2rem] p-6 shadow-sm border border-slate-100">
+              <h2 class="text-3xl font-extrabold text-slate-100 mb-1 opacity-70">04</h2>
+              <h3 id="doc_t4" class="font-bold text-slate-900 text-lg mb-1 truncate">Validación Monte Carlo</h3>
+              <p id="doc_d4" class="text-xs text-slate-500 leading-relaxed">Contraste robusto vs heurísticas comerciales usando intervalos de confianza Bootstrap (1000 iteraciones).</p>
+            </div>
+
+          </div>
+        </div>
+
+      </main>
+    </div>
+  </div>
+
+  <script src="cerebro.js" defer></script>
+  <script src="main.js" type="module" defer></script>
+</body>
+</html>

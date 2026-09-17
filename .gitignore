@@ -1,0 +1,32 @@
+# 1. Ignorar el dataset masivo y muestras locales pesadas
+thegurus-opendata-renfe-trips.csv
+data/*.csv
+!data/dataset_sample.csv  # Esta línea fuerza a que SÍ suba la muestra pequeña (excepción)
+
+# 2. Ignorar pesos de modelos y logs de entrenamiento
+modelos_guardados/
+logs_tensorboard/
+*.zip
+*.tar.gz
+
+# 3. Ignorar basura de Python y entornos virtuales
+.ipynb_checkpoints/
+__pycache__/
+*.pyc
+*.pyo
+venv/
+env/
+.env
+
+# 4. Ignorar basura generada por PySpark en local
+spark-warehouse/
+metastore_db/
+derby.log
+
+# 5. Ignorar archivos del sistema operativo
+.DS_Store
+Thumbs.db
+
+# 6. Ignorar archivos temporales de despliegue web
+.vercel/
+node_modules/
